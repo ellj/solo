@@ -1,11 +1,13 @@
 import React, { useState, useCallback } from "react";
-import { Input, Select } from "solo-uswds";
+import { Input, Select, Button } from "solo-uswds";
 import {
   WarehouseUser,
   PaginatedApiResponse,
   createFakeUsers
 } from "solo-types";
 import { useAuthContext } from "context";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
 
 interface QueryUser {
   options: Array<string>;
@@ -79,6 +81,11 @@ const QueryUser: React.FC<QueryUser> = ({ options }) => {
           type="text"
           placeholder="Add New User"
         />
+      </div>
+      <div className="grid-col-auto">
+        <Button square className="margin-top-1" type="submit">
+          <FontAwesomeIcon icon={faPlus} />
+        </Button>
       </div>
       <div className="grid-col-full margin-x-2">
         <p>{user}</p>
