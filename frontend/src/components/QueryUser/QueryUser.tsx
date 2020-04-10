@@ -35,7 +35,7 @@ const QueryUser: React.FC<QueryUser> = ({ options }) => {
   const fetchWarehouseUser = useCallback(async () => {
     try {
       const { results } = await apiCall<PaginatedApiResponse<WarehouseUser[]>>(
-        `/warehouse/user?q=${currentValue}`,
+        `/warehouseuser?q=${currentValue}`,
         {
           method: "GET"
         }

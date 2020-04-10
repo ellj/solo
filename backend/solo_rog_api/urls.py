@@ -4,7 +4,7 @@ from rest_framework.routers import SimpleRouter
 from . import views
 
 router = SimpleRouter()
-router.register("warehouseusers/", views.WarehouseUsersView, "warehouse-users")
+router.register("warehouseusers", views.WarehouseUsersView, "warehouse-users")
 
 urlpatterns = [
     path("login/", views.ObtainTokenView.as_view(), name="login"),

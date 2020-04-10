@@ -23,7 +23,7 @@ const useWarehouseUsers = () => {
     try {
       const { results, count } = await apiCall<
         PaginatedApiResponse<WarehouseUser[]>
-      >("/warehouse/users/", {
+      >("/warehouseusers/", {
         method: "GET"
       });
       setUsers(results);
@@ -77,7 +77,7 @@ const useWarehouseUsers = () => {
       });
       try {
         const { canD6T, canCOR } = getUserById(userId);
-        await apiCall(`/warehouse/users/${userId}/`, {
+        await apiCall(`/warehouseusers/${userId}/`, {
           method: "PATCH",
           body: JSON.stringify({
             canD6T,

@@ -32,6 +32,7 @@ const AdminPage: React.FC = () => {
     <div className="tablet:margin-x-8 overflow-x-auto">
       <Title>User Administration</Title>
       {/* show all users with the same aac as the current manager/user */}
+      <h2>All Users with the same AAC</h2>
       <SelectFilterControls options={filterable} onSubmit={setGlobalFilter} />
       <Table<WarehouseUser>
         columns={tableColumns}
@@ -40,6 +41,7 @@ const AdminPage: React.FC = () => {
 
       {/* show search results based on edipi (backend username) or last name (backend last_name) */}
       {/* <SelectFilterControls options={aacFilterable} onSubmit={setGlobalFilter} /> */}
+      <h2>Search based on EDIPI or Last Name</h2>
       <QueryUser options={aacFilterable} />
       <Table<WarehouseUser>
         columns={tableColumns}
