@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import {
   PaginatedApiResponse,
   LoadingStatus,
-  createFakeUsers,
+  createFakeWarehouseUsers,
   WarehouseUser
 } from "solo-types";
 import { useAuthContext } from "context";
@@ -23,7 +23,7 @@ const useWarehouseUsers = () => {
     try {
       const { results, count } = await apiCall<
         PaginatedApiResponse<WarehouseUser[]>
-      >("/warehouseusers/", {
+      >("/warehouse/users/", {
         method: "GET"
       });
       setUsers(results);
@@ -32,7 +32,7 @@ const useWarehouseUsers = () => {
         loading: false
       });
     } catch (e) {
-      setUsers(createFakeUsers(25));
+      setUsers(createFakeWarehouseUsers(25));
       setPageCount(9);
       setLoadingStatus({
         loading: false
@@ -51,12 +51,10 @@ const useWarehouseUsers = () => {
   }, []);
 
   const modifyWarehouseUser = useCallback(
-    (userId: number, data: Partial<WarehouseUser>) => {
+    (id: number, data: Partial<WarehouseUser>) => {
       setUsers(
         users.map(user =>
-          user.userId === userId
-            ? { ...user, ...data, hasModified: true }
-            : user
+          user.id === id ? { ...user, ...data, hasModified: true } : user
         )
       );
     },
@@ -64,8 +62,7 @@ const useWarehouseUsers = () => {
   );
 
   const getUserById = useCallback(
-    (userId: number) =>
-      users.find(user => user.userId === userId) as WarehouseUser,
+    (userId: number) => users.find(user => user.id === userId) as WarehouseUser,
     [users]
   );
 
@@ -77,7 +74,7 @@ const useWarehouseUsers = () => {
       });
       try {
         const { canD6T, canCOR } = getUserById(userId);
-        await apiCall(`/warehouseusers/${userId}/`, {
+        await apiCall(`/warehouse/users/${userId}/`, {
           method: "PATCH",
           body: JSON.stringify({
             canD6T,

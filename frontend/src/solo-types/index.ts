@@ -4,7 +4,7 @@ export {
   defaultApiDoc,
   defaultApiResponse
 } from "./apiDoc";
-export * from "./warehouseUsers";
+export * from "./users";
 export { default as createFakeDocs, defaultDoc } from "./doc";
 
 export interface Part {
@@ -117,13 +117,21 @@ export interface PaginatedApiResponse<T> {
   previous: number;
 }
 
-export interface WarehouseUser extends LoadingStatus {
-  userId: number;
+export interface User extends LoadingStatus {
+  id: number;
   username: string;
   first_name: string;
   last_name: string;
+}
+
+export interface WarehouseUser extends User {
   canD6T: boolean;
   canCOR: boolean;
   aac: string;
   hasModified?: boolean;
+}
+
+export interface Warehouse {
+  aac: string;
+  id: number;
 }

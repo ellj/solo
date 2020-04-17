@@ -1,20 +1,23 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { Title, Table, SelectFilterControls } from "components";
+import { Input, Select } from "solo-uswds";
 import createColumns from "./tableColumns";
 import useWarehouseUsers from "./useWarehouseUsers";
+import useGlobalUsers from "./useGlobalUsers";
 import { WarehouseUser } from "solo-types";
-import QueryUser from "components/QueryUser/QueryUser";
-
-const aacFilterable = ["M30300", "M30305"];
 
 const filterable = [
   { name: "Last Name", value: "sdn" },
   { name: "DODID", value: "nsn" }
 ];
 
-const setGlobalFilter = () => {}
+const setGlobalFilter = () => {};
 
 const AdminPage: React.FC = () => {
+  const [userFilter, setUserFilter] = useState("");
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<number | null>(
+    null
+  );
   const {
     //loadingStatus,
     modifyWarehouseUser,
@@ -22,31 +25,78 @@ const AdminPage: React.FC = () => {
     // pageCount,
     users
   } = useWarehouseUsers();
+  const {
+    usersFound,
+    searchUsers,
+    modifyUser,
+    addUserToWarehouse,
+    warehouses
+  } = useGlobalUsers();
 
   const tableColumns = useMemo(
     () => createColumns(modifyWarehouseUser, updateUserPermissons),
     [modifyWarehouseUser, updateUserPermissons]
   );
 
+  const onAddUserToWarehouse = useCallback(
+    (userId: number) => {
+      if (!selectedWarehouseId) {
+        // set some error state here
+        console.error("must select a warehouse...");
+      } else {
+        return addUserToWarehouse(userId, selectedWarehouseId);
+      }
+    },
+    [selectedWarehouseId]
+  );
+
+  const foundUsersTableColumns = useMemo(
+    () => createColumns(modifyUser, onAddUserToWarehouse),
+    [modifyUser, addUserToWarehouse]
+  );
+
+  const onUserFilterChange: React.ChangeEventHandler<HTMLInputElement> = e => {
+    setUserFilter(e.currentTarget.value);
+  };
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      searchUsers(userFilter);
+    }, 300);
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [userFilter]);
+
   return (
     <div className="tablet:margin-x-8 overflow-x-auto">
       <Title>User Administration</Title>
-      {/* show all users with the same aac as the current manager/user */}
       <h2>All Users with the same AAC</h2>
       <SelectFilterControls options={filterable} onSubmit={setGlobalFilter} />
-      <Table<WarehouseUser>
-        columns={tableColumns}
-        data={users}
+      <Table<WarehouseUser> columns={tableColumns} data={users} />
+      <h2>Add users</h2>
+      <Input
+        defaultMargin
+        value={userFilter}
+        onChange={onUserFilterChange}
+        type="text"
+        placeholder="Search Users"
       />
-
-      {/* show search results based on edipi (backend username) or last name (backend last_name) */}
-      {/* <SelectFilterControls options={aacFilterable} onSubmit={setGlobalFilter} /> */}
-      <h2>Search based on EDIPI or Last Name</h2>
-      <QueryUser options={aacFilterable} />
-      <Table<WarehouseUser>
-        columns={tableColumns}
-        data={users}
-      />
+      <Select
+        onChange={e => setSelectedWarehouseId(parseInt(e.currentTarget.value))}
+      >
+        {warehouses.map(warehouse => (
+          <option key={warehouse.id} value={warehouse.id}>
+            {warehouse.aac}
+          </option>
+        ))}
+      </Select>
+      {usersFound.length && (
+        <Table<WarehouseUser>
+          columns={foundUsersTableColumns}
+          data={usersFound}
+        />
+      )}
     </div>
   );
 };

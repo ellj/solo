@@ -45,7 +45,7 @@ const createColumns: CreateColumns = (
     disableSortBy: true,
     Cell: ({
       row: {
-        original: { canD6T, userId }
+        original: { canD6T, id }
       }
     }) => {
       return (
@@ -54,7 +54,7 @@ const createColumns: CreateColumns = (
             data-testid="has-d6t-checkbox"
             checked={canD6T}
             onChange={e => {
-              modifyWarehouseUser(userId, {
+              modifyWarehouseUser(id, {
                 canD6T: e.target.checked
               });
             }}
@@ -69,7 +69,7 @@ const createColumns: CreateColumns = (
     disableSortBy: true,
     Cell: ({
       row: {
-        original: { userId, canCOR }
+        original: { id, canCOR }
       }
     }) => {
       return (
@@ -78,7 +78,7 @@ const createColumns: CreateColumns = (
             data-testid="has-cor-checkbox"
             checked={canCOR}
             onChange={e => {
-              modifyWarehouseUser(userId, {
+              modifyWarehouseUser(id, {
                 canCOR: e.target.checked
               });
             }}
@@ -93,7 +93,7 @@ const createColumns: CreateColumns = (
     disableSortBy: true,
     Cell: ({
       row: {
-        original: { userId, hasModified }
+        original: { id, hasModified }
       }
     }) => {
       return (
@@ -101,7 +101,7 @@ const createColumns: CreateColumns = (
           <Button
             disabled={!hasModified}
             onClick={() => {
-              updateUserPermissons(userId);
+              updateUserPermissons(id);
             }}
           >
             Submit
