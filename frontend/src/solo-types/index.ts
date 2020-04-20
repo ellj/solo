@@ -2,7 +2,7 @@ import { SortingRule, Filters } from "react-table";
 export {
   default as createFakeApiDocs,
   defaultApiDoc,
-  defaultApiResponse
+  defaultApiResponse,
 } from "./apiDoc";
 export * from "./users";
 export { default as createFakeDocs, defaultDoc } from "./doc";
@@ -124,11 +124,14 @@ export interface User extends LoadingStatus {
   last_name: string;
 }
 
-export interface WarehouseUser extends User {
-  canD6T: boolean;
-  canCOR: boolean;
-  aac: string;
+export interface WarehouseMember extends LoadingStatus {
+  id: number;
+  warehouse: string;
   hasModified?: boolean;
+  d6t_permission: boolean;
+  cor_permission: boolean;
+  manager: boolean;
+  user: User;
 }
 
 export interface Warehouse {

@@ -1,106 +1,128 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import {
   PaginatedApiResponse,
   LoadingStatus,
-  createFakeWarehouseUsers,
-  WarehouseUser
+  createFakeWarehouseMembers,
+  WarehouseMember,
+  Query,
 } from "solo-types";
 import { useAuthContext } from "context";
+
+// interface ApiWarehouseUser {
+//   id: number;
+//   warehouse: string;
+//   cor_permission: boolean;
+//   d6t_permission: boolean;
+//   manager: boolean;
+//   user: {
+//     id: number;
+//     username: string;
+//     first_name: string;
+//     last_name: string;
+//   };
+// }
 
 const useWarehouseUsers = () => {
   const { apiCall } = useAuthContext();
   const [loadingStatus, setLoadingStatus] = useState<LoadingStatus>({
-    loading: false
+    loading: false,
   });
   const [pageCount, setPageCount] = useState<number>(0);
-  const [users, setUsers] = useState<WarehouseUser[]>([]);
+  const [members, setMembers] = useState<WarehouseMember[]>([]);
 
-  const fetchWarehouseUsers = useCallback(async () => {
-    setLoadingStatus({
-      loading: true,
-      error: false
-    });
-    try {
-      const { results, count } = await apiCall<
-        PaginatedApiResponse<WarehouseUser[]>
-      >("/warehouse/users/", {
-        method: "GET"
-      });
-      setUsers(results);
-      setPageCount(Math.ceil(count / 25));
+  const fetchWarehouseMembers = useCallback(
+    async ({ filters }: Query<WarehouseMember>) => {
       setLoadingStatus({
-        loading: false
-      });
-    } catch (e) {
-      setUsers(createFakeWarehouseUsers(25));
-      setPageCount(9);
-      setLoadingStatus({
-        loading: false
-      });
-    }
-    // setLoadingStatus({
-    //   loading: false,
-    //   error: true,
-    //   message: e.message || "Something went wrong"
-    // })
-  }, [setLoadingStatus, setUsers, apiCall]);
-
-  useEffect(() => {
-    fetchWarehouseUsers();
-    // eslint-disable-next-line
-  }, []);
-
-  const modifyWarehouseUser = useCallback(
-    (id: number, data: Partial<WarehouseUser>) => {
-      setUsers(
-        users.map(user =>
-          user.id === id ? { ...user, ...data, hasModified: true } : user
-        )
-      );
-    },
-    [setUsers, users]
-  );
-
-  const getUserById = useCallback(
-    (userId: number) => users.find(user => user.id === userId) as WarehouseUser,
-    [users]
-  );
-
-  const updateUserPermissons = useCallback(
-    async (userId: number) => {
-      modifyWarehouseUser(userId, {
         loading: true,
-        error: false
+        error: false,
       });
       try {
-        const { canD6T, canCOR } = getUserById(userId);
-        await apiCall(`/warehouse/users/${userId}/`, {
-          method: "PATCH",
-          body: JSON.stringify({
-            canD6T,
-            canCOR
-          })
+        const params = new URLSearchParams();
+        filters.forEach(({ id, value }) => {
+          params.set(id, value);
         });
-        modifyWarehouseUser(userId, {
-          loading: false
+        const queryString = params.toString();
+        const { results, count } = await apiCall<
+          PaginatedApiResponse<WarehouseMember[]>
+        >(`/warehouseusers/${queryString ? "?" + queryString : ""}`, {
+          method: "GET",
+        });
+        setMembers(results);
+        setPageCount(Math.ceil(count / 25));
+        setLoadingStatus({
+          loading: false,
         });
       } catch (e) {
-        modifyWarehouseUser(userId, {
+        setMembers(createFakeWarehouseMembers(25));
+        setPageCount(9);
+        setLoadingStatus({
           loading: false,
-          error: true,
-          message: e.message || "Something went wrong"
         });
       }
     },
-    [apiCall, getUserById, modifyWarehouseUser]
+    [setLoadingStatus, setMembers, apiCall]
+  );
+
+  const insertWarehouseMember = useCallback((member: WarehouseMember) => {
+    setMembers((previous) => [member, ...previous]);
+  }, []);
+
+  const modifyWarehouseMember = useCallback(
+    (id: number, data: Partial<WarehouseMember>) => {
+      setMembers((members) =>
+        members.map((member) =>
+          member.id === id ? { ...member, ...data, hasModified: true } : member
+        )
+      );
+    },
+    []
+  );
+
+  const getMembershipById = useCallback(
+    (id: number) =>
+      members.find((member) => member.id === id) as WarehouseMember,
+    [members]
+  );
+
+  const updateMemberPermissions = useCallback(
+    async (membershipId: number) => {
+      modifyWarehouseMember(membershipId, {
+        loading: true,
+        error: false,
+      });
+      try {
+        const { d6t_permission, cor_permission } = getMembershipById(
+          membershipId
+        );
+        await apiCall(`/warehouseusers/${membershipId}/`, {
+          method: "PATCH",
+          body: JSON.stringify({
+            d6t_permission,
+            cor_permission,
+          }),
+        });
+        modifyWarehouseMember(membershipId, {
+          loading: false,
+        });
+      } catch (e) {
+        modifyWarehouseMember(membershipId, {
+          loading: false,
+          error: true,
+          message: e.message || "Something went wrong",
+        });
+      }
+    },
+    [apiCall, getMembershipById, modifyWarehouseMember]
   );
 
   return {
     loadingStatus,
-    modifyWarehouseUser,
-    updateUserPermissons,
+    insertWarehouseMember,
+    modifyWarehouseMember,
+    updateMemberPermissions,
     pageCount,
-    users
+    members,
+    fetchWarehouseMembers,
   };
 };
 

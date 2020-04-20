@@ -91,6 +91,12 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ["username", "id", "first_name", "last_name"]
 
 
+class WarehouseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Warehouse
+        fields = ["id", "aac"]
+
+
 class ManagedWarehouseField(serializers.PrimaryKeyRelatedField):
     def get_queryset(self) -> "QuerySet[Warehouse]":
         return Warehouse.objects.filter(

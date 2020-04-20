@@ -1,19 +1,22 @@
 from typing import Any, Union, Dict
 from rest_framework import generics, viewsets
 from rest_framework.serializers import BaseSerializer
+from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import CreateAPIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from django_filters import rest_framework as filters
-from django.db.models import QuerySet  # pylint: disable=unused-import
-from .models import Document, UserInWarehouse
+from django.db.models import QuerySet, Q  # pylint: disable=unused-import
+from .models import Document, UserInWarehouse, Warehouse, User
 from .serializers import (
     TokenObtainSerializer,
     DocumentSerializer,
     UpdateStatusD6TSerializer,
     UpdateStatusCORSerializer,
     UserInWarehouseSerializer,
+    WarehouseSerializer,
+    UserSerializer,
 )
 from .filters import DocumentListFilter
 
@@ -41,6 +44,35 @@ class WarehouseUsersView(viewsets.ModelViewSet):
         ctx = super().get_serializer_context()
         ctx["user"] = self.request.user
         return ctx
+
+
+class WarehouseView(generics.ListAPIView):
+    serializer_class = WarehouseSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        user = self.request.user
+        return Warehouse.objects.filter(
+            warehouse_membership__user_id=user.id, warehouse_membership__manager=True
+        )
+
+
+class EligibleUserSearchView(generics.ListAPIView):
+    serializer_class = UserSerializer
+    pagination_class = None
+    queryset = User.objects.all()
+
+    def get_queryset(self):
+        warehouse_id = self.kwargs["warehouse_id"]
+        qs = (
+            super().get_queryset().exclude(warehouse_membership__warehouse=warehouse_id)
+        )
+        query = self.request.query_params.get("q", None)
+        if query:
+            qs = qs.filter(
+                Q(username__startswith=query) | Q(last_name__startswith=query)
+            )
+        return qs[:5]
 
 
 class DocumentList(generics.ListAPIView):

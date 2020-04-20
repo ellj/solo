@@ -12,6 +12,12 @@ urlpatterns = [
     path("document/", views.DocumentList.as_view(), name="document_list"),
     path("document/d6t/", views.D6TSubmissionView.as_view(), name="bulk_d6t"),
     path("document/cor/", views.CORSubmissionView.as_view(), name="bulk_cor"),
+    path("warehouse/", views.WarehouseView.as_view(), name="warehouse_list"),
+    path(
+        "warehouse/<int:warehouse_id>/eligibleusers/",
+        views.EligibleUserSearchView.as_view(),
+        name="user_search",
+    ),
 ]
 
 urlpatterns += router.urls

@@ -16,7 +16,11 @@ def create_fake_users(count: int = 10) -> None:
     models.User.objects.bulk_create(
         [
             # simulate edipi
-            models.User(username=fake.msisdn())
+            models.User(
+                username=fake.msisdn(),
+                first_name=fake.first_name(),
+                last_name=fake.last_name(),
+            )
             for _ in range(count)
         ]
     )

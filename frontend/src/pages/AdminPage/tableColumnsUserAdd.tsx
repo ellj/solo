@@ -1,17 +1,19 @@
 import React from "react";
 import { Column } from "react-table";
 import { LoadingIcon } from "components";
-import { WarehouseUser } from "solo-types";
+import { WarehouseMember } from "solo-types";
 import { Checkbox, Button } from "solo-uswds";
 
 type CreateColumns = (
-  modifyWarehouseUser: (userId: number, data: Partial<WarehouseUser>) => void,
-  updateUserPermissons: (userId: number) => void
-) => Column<WarehouseUser>[];
+  modifyUser: (userId: number, data: Partial<WarehouseMember>) => void,
+  addUserToWarehouse: (userId: number) => void,
+  selectedAAC?: string | null
+) => Column<WarehouseMember>[];
 
 const createColumns: CreateColumns = (
-  modifyWarehouseUser,
-  updateUserPermissons
+  modifyUser,
+  addUserToWarehouse,
+  selectedAAC = ""
 ) => [
   {
     Header: "Loading",
@@ -19,73 +21,80 @@ const createColumns: CreateColumns = (
     disableSortBy: true,
     Cell: ({
       row: {
-        original: { loading, error }
-      }
-    }) => <LoadingIcon loading={loading} error={error} />
+        original: { loading, error },
+      },
+    }) => <LoadingIcon loading={loading} error={error} />,
   },
   {
     Header: "AAC",
-    accessor: "aac"
+    id: "warehouse",
+    accessor: () => selectedAAC,
   },
   {
     Header: "First Name",
-    accessor: "first_name"
+    accessor: "user.first_name",
   },
   {
     Header: "Last Name",
-    accessor: "last_name"
+    accessor: "user.last_name",
   },
   {
     Header: "DODID",
-    accessor: "username"
+    accessor: "user.username",
   },
   {
     Header: "D6T",
-    id: "canD6T",
+    id: "d6t_permission",
     disableSortBy: true,
     Cell: ({
       row: {
-        original: { canD6T, id }
-      }
+        original: {
+          d6t_permission,
+          user: { id },
+        },
+      },
     }) => {
       return (
         <div className="padding-left-2">
           <Checkbox
             data-testid="has-d6t-checkbox"
-            checked={canD6T}
-            onChange={e => {
-              modifyWarehouseUser(id, {
-                canD6T: e.target.checked
+            checked={d6t_permission}
+            onChange={(e) => {
+              modifyUser(id, {
+                d6t_permission: e.target.checked,
               });
             }}
           />
         </div>
       );
-    }
+    },
   },
   {
     Header: "COR",
-    id: "canCOR",
+    id: "cor_permission",
     disableSortBy: true,
     Cell: ({
       row: {
-        original: { id, canCOR }
-      }
+        original: {
+          user: { id },
+          cor_permission,
+        },
+      },
     }) => {
       return (
         <div className="padding-left-2">
           <Checkbox
             data-testid="has-cor-checkbox"
-            checked={canCOR}
-            onChange={e => {
-              modifyWarehouseUser(id, {
-                canCOR: e.target.checked
+            checked={cor_permission}
+            onChange={(e) => {
+              modifyUser(id, {
+                cor_permission: e.target.checked,
               });
             }}
           />
         </div>
       );
-    }
+    },
   },
   {
     Header: "Submit Permissions",
@@ -93,23 +102,26 @@ const createColumns: CreateColumns = (
     disableSortBy: true,
     Cell: ({
       row: {
-        original: { id, hasModified }
-      }
+        original: {
+          user: { id },
+          hasModified,
+        },
+      },
     }) => {
       return (
         <div className="padding-left-2">
           <Button
             disabled={!hasModified}
             onClick={() => {
-              updateUserPermissons(id);
+              addUserToWarehouse(id);
             }}
           >
             Submit
           </Button>
         </div>
       );
-    }
-  }
+    },
+  },
 ];
 
 export default createColumns;

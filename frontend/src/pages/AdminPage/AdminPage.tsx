@@ -1,101 +1,98 @@
-import React, { useMemo, useState, useEffect, useCallback } from "react";
+import React, { useMemo, useCallback } from "react";
 import { Title, Table, SelectFilterControls } from "components";
-import { Input, Select } from "solo-uswds";
-import createColumns from "./tableColumns";
+import createColumnsUserList from "./tableColumnsUserList";
+import createColumnsUserAdd from "./tableColumnsUserAdd";
 import useWarehouseUsers from "./useWarehouseUsers";
 import useGlobalUsers from "./useGlobalUsers";
-import { WarehouseUser } from "solo-types";
+import { WarehouseMember } from "solo-types";
+import { TableInstance } from "react-table";
+import AddUserControls from "./AddUserControls";
 
 const filterable = [
-  { name: "Last Name", value: "sdn" },
-  { name: "DODID", value: "nsn" }
+  { name: "Last Name", value: "lastName" },
+  { name: "DODID", value: "dodid" },
 ];
 
-const setGlobalFilter = () => {};
-
 const AdminPage: React.FC = () => {
-  const [userFilter, setUserFilter] = useState("");
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState<number | null>(
-    null
-  );
   const {
-    //loadingStatus,
-    modifyWarehouseUser,
-    updateUserPermissons,
-    // pageCount,
-    users
+    modifyWarehouseMember,
+    insertWarehouseMember,
+    updateMemberPermissions,
+    fetchWarehouseMembers,
+    members,
   } = useWarehouseUsers();
   const {
     usersFound,
-    searchUsers,
-    modifyUser,
+    onFilterChange,
+    filter,
+    modifyMembershipByUserId,
     addUserToWarehouse,
-    warehouses
+    warehouses,
+    selectedWarehouse,
+    onSelectWarehouse,
   } = useGlobalUsers();
 
-  const tableColumns = useMemo(
-    () => createColumns(modifyWarehouseUser, updateUserPermissons),
-    [modifyWarehouseUser, updateUserPermissons]
-  );
-
   const onAddUserToWarehouse = useCallback(
-    (userId: number) => {
-      if (!selectedWarehouseId) {
+    async (userId: number) => {
+      if (!selectedWarehouse?.id) {
         // set some error state here
         console.error("must select a warehouse...");
       } else {
-        return addUserToWarehouse(userId, selectedWarehouseId);
+        const result = await addUserToWarehouse(userId, selectedWarehouse.id);
+        if (result) {
+          insertWarehouseMember(result);
+        }
       }
     },
-    [selectedWarehouseId]
+    [selectedWarehouse, addUserToWarehouse, usersFound]
+  );
+
+  const tableColumns = useMemo(
+    () => createColumnsUserList(modifyWarehouseMember, updateMemberPermissions),
+    [modifyWarehouseMember, updateMemberPermissions]
   );
 
   const foundUsersTableColumns = useMemo(
-    () => createColumns(modifyUser, onAddUserToWarehouse),
-    [modifyUser, addUserToWarehouse]
+    () =>
+      createColumnsUserAdd(
+        modifyMembershipByUserId,
+        onAddUserToWarehouse,
+        selectedWarehouse?.aac
+      ),
+    [modifyMembershipByUserId, onAddUserToWarehouse]
   );
 
-  const onUserFilterChange: React.ChangeEventHandler<HTMLInputElement> = e => {
-    setUserFilter(e.currentTarget.value);
+  const renderFilterControls = (table: TableInstance<WarehouseMember>) => {
+    const { setGlobalFilter } = table;
+    return (
+      <SelectFilterControls options={filterable} onSubmit={setGlobalFilter} />
+    );
   };
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      searchUsers(userFilter);
-    }, 300);
-    return () => {
-      clearTimeout(timeout);
-    };
-  }, [userFilter]);
-
   return (
-    <div className="tablet:margin-x-8 overflow-x-auto">
+    <div className="tablet:margin-x-8 overflow-x-auto overflow-y-hidden">
       <Title>User Administration</Title>
-      <h2>All Users with the same AAC</h2>
-      <SelectFilterControls options={filterable} onSubmit={setGlobalFilter} />
-      <Table<WarehouseUser> columns={tableColumns} data={users} />
-      <h2>Add users</h2>
-      <Input
-        defaultMargin
-        value={userFilter}
-        onChange={onUserFilterChange}
-        type="text"
-        placeholder="Search Users"
+      <Table<WarehouseMember>
+        columns={tableColumns}
+        data={members}
+        renderFilterControls={renderFilterControls}
+        fetchData={fetchWarehouseMembers}
       />
-      <Select
-        onChange={e => setSelectedWarehouseId(parseInt(e.currentTarget.value))}
-      >
-        {warehouses.map(warehouse => (
-          <option key={warehouse.id} value={warehouse.id}>
-            {warehouse.aac}
-          </option>
-        ))}
-      </Select>
-      {usersFound.length && (
-        <Table<WarehouseUser>
+
+      <h2>Add users</h2>
+      <AddUserControls
+        filter={filter}
+        onFilterChange={onFilterChange}
+        warehouses={warehouses}
+        onWarehouseChange={onSelectWarehouse}
+      />
+      {usersFound.length ? (
+        <Table<WarehouseMember>
           columns={foundUsersTableColumns}
           data={usersFound}
         />
+      ) : (
+        ""
       )}
     </div>
   );
