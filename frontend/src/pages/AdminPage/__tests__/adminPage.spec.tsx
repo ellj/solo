@@ -1,37 +1,53 @@
 import React from "react";
 import AdminPage from "../AdminPage";
 import { render, fireEvent, wait } from "test-utils";
-import { defaultUserApiResponse, WarehouseUser } from "solo-types";
+import {
+  defaultUserApiResponse,
+  defaultWarehouseMemberApiResponse,
+  defaultWareHouseMember,
+} from "solo-types";
 
 describe("AdminPage Component", () => {
   const fetchMock = jest.fn();
+  const warehouseFetchMock = jest.fn();
+  const membersFetchMock = jest.fn();
   const defaultUser = defaultUserApiResponse.results[0];
 
   beforeEach(() => {
-    fetchMock.mockResolvedValue(defaultUserApiResponse);
+    warehouseFetchMock.mockResolvedValue([
+      { id: 1, aac: "testwarehouse1" },
+      { id: 2, aac: "testwarehouse2" },
+    ]);
+    membersFetchMock.mockResolvedValue(defaultWarehouseMemberApiResponse);
+    fetchMock.mockImplementation((url: string, ...rest) => {
+      if (url === "/warehouse/") {
+        return warehouseFetchMock(url, ...rest);
+      }
+      return membersFetchMock(url, ...rest);
+    });
   });
 
   afterEach(() => {
+    warehouseFetchMock.mockReset();
+    membersFetchMock.mockReset();
     fetchMock.mockReset();
   });
 
   const renderAndWaitForData = async () => {
-    const { queryByText, ...rest } = render(<AdminPage />, {
+    const { getByText, ...rest } = render(<AdminPage />, {
       authContext: {
-        apiCall: fetchMock
-      }
+        apiCall: fetchMock,
+      },
     });
     await wait(() => {
-      expect(fetchMock).toHaveBeenCalled();
-      expect(fetchMock.mock.calls[0][0]).toEqual("/warehouse/users/");
-      expect(fetchMock.mock.calls[0][1]).toMatchObject({
-        method: "GET"
-      });
-      expect(queryByText(defaultUser.username)).toBeInTheDocument();
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(getByText(defaultUser.username)).toBeInTheDocument();
+      expect(getByText(defaultUser.last_name)).toBeInTheDocument();
+      expect(getByText(defaultUser.first_name)).toBeInTheDocument();
     });
     return {
-      queryByText,
-      ...rest
+      getByText,
+      ...rest,
     };
   };
 
@@ -41,29 +57,29 @@ describe("AdminPage Component", () => {
   });
 
   it("fails to fetch users due to network error", async () => {
-    fetchMock.mockRejectedValue(new Error("network error"));
+    membersFetchMock.mockRejectedValue(new Error("network error"));
     const { queryAllByTestId } = render(<AdminPage />, {
       authContext: {
-        apiCall: fetchMock
-      }
+        apiCall: fetchMock,
+      },
     });
     await wait(() => {
-      expect(fetchMock).toHaveBeenCalled();
+      expect(membersFetchMock).toHaveBeenCalled();
       // update checks here once api is integrated
       expect(queryAllByTestId("has-cor-checkbox").length).toBeGreaterThan(0);
     });
   });
 
   it("click on checkboxes and change permissions", async () => {
-    fetchMock.mockResolvedValue({
-      ...defaultUserApiResponse,
+    membersFetchMock.mockResolvedValue({
+      ...defaultWarehouseMemberApiResponse,
       results: [
         {
-          ...defaultUser,
-          canD6T: false,
-          canCOR: false
-        }
-      ]
+          ...defaultWareHouseMember,
+          d6t_permission: false,
+          cor_permission: false,
+        },
+      ],
     });
     const { getByTestId, getByText, container } = await renderAndWaitForData();
     await wait(() => {
@@ -78,40 +94,36 @@ describe("AdminPage Component", () => {
       expect(getByTestId("has-d6t-checkbox")).toBeChecked();
       expect(getByText("Submit")).not.toBeDisabled();
     });
-    fetchMock.mockResolvedValue({});
+    membersFetchMock.mockResolvedValue({});
     fireEvent.click(getByText("Submit"));
     await wait(() => {
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-      expect(fetchMock.mock.calls[1][0]).toEqual(
-        `/warehouse/users/${defaultUser.userId}/`
+      expect(membersFetchMock).toHaveBeenCalledTimes(2);
+      expect(membersFetchMock.mock.calls[1][0]).toEqual(
+        `/warehouseusers/${defaultWareHouseMember.id}/`
       );
-      expect(fetchMock.mock.calls[1][1]).toMatchObject({
+      expect(membersFetchMock.mock.calls[1][1]).toMatchObject({
         method: "PATCH",
         body: JSON.stringify({
-          canD6T: true,
-          canCOR: true
-        })
+          d6t_permission: true,
+          cor_permission: true,
+        }),
       });
       expect(container.querySelector("svg.fa-check")).toBeInTheDocument();
     });
   });
 
   it("submit user permissions network error shows error indicator icon", async () => {
-    fetchMock.mockResolvedValue({
-      ...defaultUserApiResponse,
+    membersFetchMock.mockResolvedValue({
+      ...defaultWarehouseMemberApiResponse,
       results: [
         {
-          ...defaultUser,
-          canD6T: false,
-          canCOR: false
-        }
-      ]
+          ...defaultWareHouseMember,
+          d6t_permission: false,
+          cor_permission: false,
+        },
+      ],
     });
-    const { getByTestId, getByText, container } = render(<AdminPage />, {
-      authContext: {
-        apiCall: fetchMock
-      }
-    });
+    const { getByTestId, getByText, container } = await renderAndWaitForData();
     await wait(() => {
       expect(getByTestId("has-cor-checkbox")).not.toBeChecked();
       expect(getByTestId("has-d6t-checkbox")).not.toBeChecked();
@@ -124,10 +136,10 @@ describe("AdminPage Component", () => {
       expect(getByTestId("has-d6t-checkbox")).toBeChecked();
       expect(getByText("Submit")).not.toBeDisabled();
     });
-    fetchMock.mockRejectedValue(new Error());
+    membersFetchMock.mockRejectedValue(new Error());
     fireEvent.click(getByText("Submit"));
     await wait(() => {
-      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(membersFetchMock).toHaveBeenCalledTimes(2);
       expect(
         container.querySelector("svg.fa-exclamation-circle")
       ).toBeInTheDocument();
@@ -135,21 +147,17 @@ describe("AdminPage Component", () => {
   });
 
   it("submit user permissions network error with message shows error indicator icon", async () => {
-    fetchMock.mockResolvedValue({
+    membersFetchMock.mockResolvedValue({
       ...defaultUserApiResponse,
       results: [
         {
-          ...defaultUser,
-          canD6T: false,
-          canCOR: false
-        }
-      ]
+          ...defaultWareHouseMember,
+          d6t_permission: false,
+          cor_permission: false,
+        },
+      ],
     });
-    const { getByTestId, getByText, container } = render(<AdminPage />, {
-      authContext: {
-        apiCall: fetchMock
-      }
-    });
+    const { getByTestId, getByText, container } = await renderAndWaitForData();
     await wait(() => {
       expect(getByTestId("has-cor-checkbox")).not.toBeChecked();
       expect(getByTestId("has-d6t-checkbox")).not.toBeChecked();
@@ -164,10 +172,10 @@ describe("AdminPage Component", () => {
     });
     const err = new Error();
     err.message = "some error message";
-    fetchMock.mockRejectedValue(err);
+    membersFetchMock.mockRejectedValue(err);
     fireEvent.click(getByText("Submit"));
     await wait(() => {
-      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(membersFetchMock).toHaveBeenCalledTimes(2);
       expect(
         container.querySelector("svg.fa-exclamation-circle")
       ).toBeInTheDocument();
@@ -175,24 +183,24 @@ describe("AdminPage Component", () => {
   });
 
   it("checking permission options only updates user for that row", async () => {
-    const user: WarehouseUser = {
-      ...defaultUser,
-      canD6T: false,
-      canCOR: false
-    };
-    fetchMock.mockResolvedValue({
-      ...defaultUserApiResponse,
+    membersFetchMock.mockResolvedValue({
+      ...defaultWarehouseMemberApiResponse,
       results: [
         {
-          ...user,
-          userId: 5
+          ...defaultWareHouseMember,
+          id: 5,
         },
         {
-          ...user,
-          username: "5678567567",
-          userId: 42
-        }
-      ]
+          ...defaultWareHouseMember,
+          id: 42,
+          user: {
+            ...defaultUser,
+            first_name: "Jeff",
+            last_name: "Hackshaw",
+            username: "5678567567",
+          },
+        },
+      ],
     });
     const { getAllByTestId, getAllByText } = await renderAndWaitForData();
     await wait(() => {
